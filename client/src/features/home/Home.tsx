@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import Slider from "react-slick";
-
+import UserGrid from "../../FeatureUpgrades/userinfo/userGrid";
+import KendoPractice from "../../FeatureUpgrades/userinfo/KendoPractice";
 export default function(){
     var settings = {
         dots: true,
@@ -22,7 +23,7 @@ export default function(){
             <img src="/images/hero3.jpg" alt="hero3" style={{display:'block',width:'100%',maxHeight:400}}/>
         </div>
         </Slider>
-
+            
         <Box justifyContent='center' sx={{p:4}}>
         <Typography variant="h2" color="secondary">
            Welcome to the Speed-Cart!
@@ -31,6 +32,9 @@ export default function(){
         Get the things you want much Faster & Better
         </Typography>
         </Box>
+        {/* <UserGrid/> */}
+        <KendoPractice/>
      </>
+    
     )
 }

@@ -99,7 +99,7 @@ export default function Register() {
                             message:'Enter a valid email'
                         }},
                     )}
-                  error = {!!errors.username} 
+                  error = {!!errors.email} 
                   helperText = {errors?.email?.message?.toString()} 
                 />
               </FormControl>

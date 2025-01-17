@@ -48,7 +48,7 @@ namespace API.Data
                 orderItems = items,
                 SubTotal = subtotal,
                 DeliveryFee = DeliveryFee,
-            };
+            }; 
             return order;
         }
 
