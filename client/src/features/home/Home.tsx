@@ -1,7 +1,5 @@
 import { Box, Typography } from "@mui/material";
 import Slider from "react-slick";
-import UserGrid from "../../FeatureUpgrades/userinfo/userGrid";
-import KendoPractice from "../../FeatureUpgrades/userinfo/KendoPractice";
 export default function(){
     var settings = {
         dots: true,
@@ -33,7 +31,6 @@ export default function(){
         </Typography>
         </Box>
         {/* <UserGrid/> */}
-        <KendoPractice/>
      </>
     
     )

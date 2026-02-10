@@ -14,7 +14,6 @@ public static class DbInitializer
         // var ProductData = await File.ReadAllTextAsync("Data/productSeed.json");
         // var options = new JsonSerializerOptions{PropertyNameCaseInsensitive = true};
         // var products = JsonSerializer.Deserialize<List<Product>>(ProductData,options);
-
         var products = new List<Product>()
         {
                 new Product

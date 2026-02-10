@@ -8,6 +8,8 @@ using API.DTOs;
 using API.Entities;
 using API.Interfaces;
 using API.Services;
+using ClosedXML.Excel;
+using Microsoft.Data.Sqlite; // for SQLite
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -18,7 +20,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 namespace API.Controllers
 {
     public class AccountController(UserManager<User> userManager, 
-    TokenService tokenService ,IUnitOfWork unitOfWork,RoleManager<Role> roleManager) : BaseApiController
+    TokenService tokenService ,IUnitOfWork unitOfWork,RoleManager<Role> roleManager, IConfiguration configuration) : BaseApiController
     {
 
         [HttpPost("login")]
@@ -141,7 +143,115 @@ namespace API.Controllers
             .Select(u=>u.userAddress)
             .FirstOrDefaultAsync();
         }
+
+        [HttpGet("exportcsv")]
+        public async Task<ActionResult> Exportcsv ()
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+            // Use SqliteConnection instead of SqlClient.SqlConnection
+            await using var conn = new Microsoft.Data.Sqlite.SqliteConnection(connectionString);
+            await conn.OpenAsync();
+            try
+            {
+                // var query = "SELECT TOP 10 Id, Name, Description, Price, PictureUrl, Type, Brand, QuantityInStock FROM Products ORDER BY Id DESC";
+                var query = "SELECT Id, Name, Description, Price, PictureUrl, Type, Brand, QuantityInStock FROM Dummydata";
+                
+                // Use SqliteCommand instead of SqlClient.SqlCommand
+                await using var cmd = new Microsoft.Data.Sqlite.SqliteCommand(query, conn);
+                await using var reader = await cmd.ExecuteReaderAsync();
+            using var stream = new MemoryStream();
+            using (var writer = new StreamWriter(stream, leaveOpen: true))
+            {
+                // Write headers
+                var headerLine = string.Join(",", Enumerable.Range(0, reader.FieldCount).Select(i => reader.GetName(i)));
+                await writer.WriteLineAsync(headerLine);
+
+                // Write data rows
+                while (await reader.ReadAsync())
+                {
+                    var row = string.Join(",", Enumerable.Range(0, reader.FieldCount).Select(i =>
+                        reader.IsDBNull(i) ? "" : reader.GetValue(i)?.ToString()));
+                    await writer.WriteLineAsync(row);
+                }
+            }
+
+            stream.Position = 0;
+
+            // Set Content-Disposition header to force download
+            Response.Headers.Add("Content-Disposition", "attachment; filename=products.csv");
+
+            return File(stream.ToArray(), "text/csv");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Database connection failed: {ex.Message}");
+            }
+        }
         
+        [HttpGet("export-excel")]
+        public async Task<ActionResult> Exportexcel()
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+            // Use SqliteConnection instead of SqlClient.SqlConnection
+            await using var conn = new Microsoft.Data.Sqlite.SqliteConnection(connectionString);
+            await conn.OpenAsync();
+            try
+            {
+                // var query = "SELECT TOP 10 Id, Name, Description, Price, PictureUrl, Type, Brand, QuantityInStock FROM Products ORDER BY Id DESC";
+                var query = "SELECT Id, Name, Description, Price, PictureUrl, Type, Brand, QuantityInStock FROM Dummydata";
+                
+                // Use SqliteCommand instead of SqlClient.SqlCommand
+                await using var cmd = new Microsoft.Data.Sqlite.SqliteCommand(query, conn);
+                await using var reader = await cmd.ExecuteReaderAsync();
+
+                using var workbook = new XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("Products");
+
+                int rowIndex = 1;
+
+                // Write headers and first row of data
+                if (await reader.ReadAsync())
+                {
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        worksheet.Cell(1, i + 1).Value = reader.GetName(i); // Column headers
+                        worksheet.Cell(2, i + 1).Value = reader.IsDBNull(i) ? "" : reader.GetValue(i)?.ToString(); // First row of data
+                    }
+                    rowIndex = 3;
+                }
+
+                // Write remaining rows
+                while (await reader.ReadAsync())
+                {
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        worksheet.Cell(rowIndex, i + 1).Value = reader.IsDBNull(i) ? "" : reader.GetValue(i)?.ToString();
+                    }
+                    rowIndex++;
+                }
+
+                worksheet.Columns().AdjustToContents();
+
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                stream.Position = 0;
+
+                Response.Headers.Add("Content-Disposition", "attachment; filename=products.xlsx");
+
+                return File(stream.ToArray(),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Database connection failed: {ex.Message}");
+            }
+        }
+
+
+
+
         private Basket CreateBasket()
         {
             string buyerId = User.Identity.Name;
@@ -161,7 +271,7 @@ namespace API.Controllers
             return basket;
         }
 
-
+       
         // [HttpPost("registerProducts")]
         // public async Task<ActionResult> RegisterProducts()
         // {
